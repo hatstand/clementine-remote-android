@@ -38,6 +38,7 @@ public class ClementineRemoteControlActivity extends Activity {
 	public final static int RESULT_DISCONNECT = 2;
 	
 	Intent mServiceIntent;
+	NsdManager mNsdManager;
 	MulticastServiceListener mServiceListener;
 	
     /** Called when the activity is first created. */
@@ -64,19 +65,35 @@ public class ClementineRemoteControlActivity extends Activity {
     	super.onResume();
     	checkBackend();
     	
-    	if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN) {
-    	  listenForService();
+    	if (supportsNsd()) {
+    	    listenForService();
     	}
+    }
+    
+    @Override
+    public void onPause() {
+        if (supportsNsd()) {
+            stopListeningForService();
+        }
+    }
+    
+    private boolean supportsNsd() {
+        return Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN;
     }
     
     @TargetApi(Build.VERSION_CODES.JELLY_BEAN)
     private void listenForService() {
         mServiceListener = new MulticastServiceListener();
-        NsdManager nsdManager = (NsdManager) getSystemService(Context.NSD_SERVICE);
-        nsdManager.discoverServices(
+        mNsdManager = (NsdManager) getSystemService(Context.NSD_SERVICE);
+        mNsdManager.discoverServices(
             MulticastServiceListener.CLEMENTINE_SERVICE_TYPE,
             NsdManager.PROTOCOL_DNS_SD,
             mServiceListener);
+    }
+    
+    @TargetApi(Build.VERSION_CODES.JELLY_BEAN)
+    private void stopListeningForService() {
+        mNsdManager.stopServiceDiscovery(mServiceListener);
     }
     
     @Override
