@@ -17,13 +17,18 @@
 
 package de.qspool.clementineremote;
 
+import android.annotation.TargetApi;
+import android.app.Activity;
+import android.content.Context;
+import android.content.Intent;
+import android.net.nsd.NsdManager;
+import android.os.Build;
+import android.os.Bundle;
+
 import de.qspool.clementineremote.backend.Clementine;
 import de.qspool.clementineremote.backend.ClementineService;
 import de.qspool.clementineremote.ui.ConnectDialog;
 import de.qspool.clementineremote.ui.Player;
-import android.app.Activity;
-import android.content.Intent;
-import android.os.Bundle;
 
 public class ClementineRemoteControlActivity extends Activity {
 	private final int ID_CONNECT_DIALOG = 0;
@@ -33,6 +38,7 @@ public class ClementineRemoteControlActivity extends Activity {
 	public final static int RESULT_DISCONNECT = 2;
 	
 	Intent mServiceIntent;
+	MulticastServiceListener mServiceListener;
 	
     /** Called when the activity is first created. */
     @Override
@@ -57,11 +63,25 @@ public class ClementineRemoteControlActivity extends Activity {
     public void onResume() {
     	super.onResume();
     	checkBackend();
+    	
+    	if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN) {
+    	  listenForService();
+    	}
+    }
+    
+    @TargetApi(Build.VERSION_CODES.JELLY_BEAN)
+    private void listenForService() {
+        mServiceListener = new MulticastServiceListener();
+        NsdManager nsdManager = (NsdManager) getSystemService(Context.NSD_SERVICE);
+        nsdManager.discoverServices(
+            MulticastServiceListener.CLEMENTINE_SERVICE_TYPE,
+            NsdManager.PROTOCOL_DNS_SD,
+            mServiceListener);
     }
     
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-    	// Check what acivity has finished. Depending on that, another activity 
+    	// Check what activity has finished. Depending on that, another activity 
     	// is called or the app closes
      	if (requestCode == ID_CONNECT_DIALOG) {
     		if (resultCode == Activity.RESULT_CANCELED) {
